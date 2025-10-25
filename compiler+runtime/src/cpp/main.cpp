@@ -133,6 +133,35 @@ namespace jank
       __rt_ctx->load_module("/clojure.core", module::origin::latest).expect_ok();
     }
 
+    {
+      profile::timer const timer{ "require nrepl-server.core" };
+      __rt_ctx->load_module("/nrepl-server.core", module::origin::latest).expect_ok();
+
+      auto const nrepl_server_main(__rt_ctx->find_var("nrepl-server.core", "-main"));
+      if(nrepl_server_main.is_some())
+      {
+        /* TODO: Handle the case when `-main` accepts no arg. */
+        runtime::detail::native_transient_vector extra_args;
+        for(auto const &s : opts.extra_opts)
+        {
+          extra_args.push_back(make_box<runtime::obj::persistent_string>(s));
+        }
+
+        auto persistent_args = extra_args.persistent();
+
+        auto runtime_fut = std::async(std::launch::async, [=]() {
+            runtime::apply_to(nrepl_server_main->deref(),
+                              make_box<runtime::obj::persistent_vector>(persistent_args));
+        });
+      }
+      else
+      {
+        throw std::runtime_error{ util::format("Could not find #'{}/-main function!",
+                                               "nrepl-server.core") };
+      }
+    }
+
+
     dynamic_call(__rt_ctx->in_ns_var->deref(), make_box<obj::symbol>("user"));
     dynamic_call(__rt_ctx->intern_var("clojure.core", "refer").expect_ok(),
                  make_box<obj::symbol>("clojure.core"));

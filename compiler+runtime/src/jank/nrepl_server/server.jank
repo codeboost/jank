@@ -4,10 +4,10 @@
 (cpp/raw "#include <nrepl_server/nrepl_server.hpp>")
 
 (defn listen [listen-port]
-  (cpp/box (cpp/new cpp/nrepl_server.server listen-port)))
+  (cpp/box (cpp/new cpp/nrepl_server.nrepl_server listen-port)))
 
 (defn accept [server*]
-  (let [server (cpp/unbox cpp/nrepl_server.server* server*)]
+  (let [server (cpp/unbox cpp/nrepl_server.nrepl_server* server*)]
     (cpp/box (cpp/.accept server))))
 
 (defn connected?

@@ -507,6 +507,9 @@ add_library(
   src/cpp/clojure/string_native.cpp
   src/cpp/jank/compiler_native.cpp
   src/cpp/jank/perf_native.cpp
+
+  #nRepl server sources
+  src/cpp/nrepl_server/nrepl_server.cpp
 )
 set_target_properties(jank_lib PROPERTIES UNITY_BUILD ${jank_unity_build})
 

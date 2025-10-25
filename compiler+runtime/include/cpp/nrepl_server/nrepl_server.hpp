@@ -11,7 +11,7 @@ namespace nrepl_server
     class client final
     {
     private:
-        struct impl;
+        class impl;
 
     public:
         /* Indicates that reading and writing may be performed on this client. */
@@ -36,7 +36,7 @@ namespace nrepl_server
     class nrepl_server final
     {
     private:
-        struct impl;
+        class impl;
 
     public:
         nrepl_server(int port);

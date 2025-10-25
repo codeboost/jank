@@ -1,4 +1,4 @@
-#include "nrepl_server.hpp"
+#include <nrepl_server/nrepl_server.hpp>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
