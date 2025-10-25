@@ -1,37 +1,24 @@
 #include <nrepl_server/nrepl_server.hpp>
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstring>
-#include <stdexcept>
-#include <cerrno>
+#include <boost/asio.hpp>
 
 namespace nrepl_server
 {
+  using namespace boost::asio;
+  using namespace boost::asio::ip;
+
   // client
   class client::impl
   {
   public:
-    impl()
-      : socket_fd_(-1)
-      , connected_(false)
+    impl(boost::asio::io_context &io_context)
+      : socket_(io_context)
     {
     }
 
-    explicit impl(int socket_fd)
-      : socket_fd_(socket_fd)
-      , connected_(true)
+    void accept(tcp::acceptor &acceptor)
     {
-    }
-
-    ~impl()
-    {
-      if(socket_fd_ >= 0)
-      {
-        ::close(socket_fd_);
-      }
+      acceptor.accept(socket_);
+      connected_ = true;
     }
 
     bool is_connected() const
@@ -41,41 +28,27 @@ namespace nrepl_server
 
     std::string read_some()
     {
-      if(!connected_)
-      {
-        return "";
-      }
+      boost::system::error_code error;
 
-      ssize_t length = ::recv(socket_fd_, rx_buf_, rx_capacity, 0);
-
-      if(length <= 0)
+      std::size_t length = socket_.read_some(buffer(rx_buf_, rx_capacity), error);
+      if(error == boost::asio::error::eof || error == boost::asio::error::connection_reset)
       {
-        // Connection closed or error
         connected_ = false;
         return "";
       }
 
-      return { rx_buf_, static_cast<std::size_t>(length) };
+      return { rx_buf_, length };
     }
 
     void write_some(std::string const &message)
     {
-      if(!connected_)
-      {
-        return;
-      }
-
-      ssize_t sent = ::send(socket_fd_, message.data(), message.size(), 0);
-
-      if(sent < 0)
-      {
-        connected_ = false;
-      }
+      boost::system::error_code error_code;
+      socket_.write_some(buffer(message), error_code);
     }
 
   private:
-    int socket_fd_;
-    bool connected_;
+    tcp::socket socket_;
+    bool connected_{ false };
 
     static constexpr std::size_t rx_capacity{ 1024ul * 1024ul }; // 1MiB
     char rx_buf_[rx_capacity]{};
@@ -104,83 +77,36 @@ namespace nrepl_server
   }
 
   // server
-  class nrepl_server::impl
+  class server::impl
   {
   public:
-    impl(int port)
-      : server_fd_(-1)
+    impl(tcp::endpoint const &endpoint)
+      : io_context_()
+      , acceptor_(io_context_, endpoint)
     {
-      // Create socket
-      server_fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-      if(server_fd_ < 0)
-      {
-        throw std::runtime_error("Failed to create socket");
-      }
-
-      // Set socket options to reuse address
-      int opt = 1;
-      if(::setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-      {
-        ::close(server_fd_);
-        throw std::runtime_error("Failed to set socket options");
-      }
-
-      // Bind to loopback address
-      struct sockaddr_in address;
-      std::memset(&address, 0, sizeof(address));
-      address.sin_family = AF_INET;
-      address.sin_addr.s_addr = inet_addr("127.0.0.1");
-      address.sin_port = htons(static_cast<uint16_t>(port));
-
-      if(::bind(server_fd_, reinterpret_cast<struct sockaddr*>(&address), sizeof(address)) < 0)
-      {
-        ::close(server_fd_);
-        throw std::runtime_error("Failed to bind socket");
-      }
-
-      // Listen for connections
-      if(::listen(server_fd_, SOMAXCONN) < 0)
-      {
-        ::close(server_fd_);
-        throw std::runtime_error("Failed to listen on socket");
-      }
-    }
-
-    ~impl()
-    {
-      if(server_fd_ >= 0)
-      {
-        ::close(server_fd_);
-      }
     }
 
     std::unique_ptr<client::impl> accept()
     {
-      struct sockaddr_in client_addr;
-      socklen_t client_len = sizeof(client_addr);
+      auto impl = std::make_unique<client::impl>(io_context_);
+      impl->accept(acceptor_);
 
-      int client_fd = ::accept(server_fd_, reinterpret_cast<struct sockaddr*>(&client_addr), &client_len);
-
-      if(client_fd < 0)
-      {
-        throw std::runtime_error("Failed to accept client connection");
-      }
-
-      return std::make_unique<client::impl>(client_fd);
+      return impl;
     }
 
   private:
-    int server_fd_;
+    io_context io_context_;
+    tcp::acceptor acceptor_;
   };
 
-  nrepl_server::nrepl_server(int port)
-    : impl_(std::make_unique<nrepl_server::impl>(port))
+  server::server(int port)
+    : impl_(std::make_unique<server::impl>(tcp::endpoint(ip::address_v4::loopback(), port)))
   {
   }
 
-  nrepl_server::~nrepl_server() = default;
+  server::~server() = default;
 
-  client *nrepl_server::accept()
+  client *server::accept()
   {
     auto impl = impl_->accept();
 

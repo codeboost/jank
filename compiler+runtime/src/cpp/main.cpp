@@ -148,11 +148,8 @@ namespace jank
         }
 
         auto persistent_args = extra_args.persistent();
-
-        auto runtime_fut = std::async(std::launch::async, [=]() {
-            runtime::apply_to(nrepl_server_main->deref(),
-                              make_box<runtime::obj::persistent_vector>(persistent_args));
-        });
+        runtime::apply_to(nrepl_server_main->deref(),
+                          make_box<runtime::obj::persistent_vector>(persistent_args));
       }
       else
       {
@@ -231,6 +228,7 @@ namespace jank
       le.setPrompt(get_prompt("=> "));
     }
   }
+
 
   static void cpp_repl()
   {

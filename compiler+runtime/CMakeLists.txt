@@ -345,6 +345,13 @@ include(cmake/dependency/boost-multiprecision.cmake)
 
 find_package(LibZip REQUIRED)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+
+# Disable FindBoost warning
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 NEW)
+endif()
+
+find_package(Boost REQUIRED)
 # ---- Other dependencies ----
 
 # ---- libjank.a ----
@@ -554,6 +561,7 @@ target_link_libraries(
   Boost::multiprecision
   nanobench_lib
   bdwgc::gc bdwgc::gctba
+  Boost::boost
 )
 
 if(APPLE)
