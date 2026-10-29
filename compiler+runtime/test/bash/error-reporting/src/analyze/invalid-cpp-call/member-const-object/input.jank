@@ -1,0 +1,19 @@
+(cpp/raw
+"
+struct foo
+{
+  int bar()
+  {
+    return 42;
+  }
+};
+
+inline foo const &get_foo()
+{
+  static foo f;
+  return f;
+}
+")
+
+(let [f (cpp/get_foo)]
+  (.bar f))

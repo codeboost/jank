@@ -1267,7 +1267,7 @@ namespace jank::analyze::cpp_util
         };
       }
       if(is_member_call && !arg_types.empty() && !cppinterop::is_const_method(fn)
-         && !cppinterop::is_const_type(arg_types[0]))
+         && cppinterop::is_const_type(cppinterop::get_non_reference_type(arg_types[0])))
       {
         return { fn, { candidate_rank_tier::const_mismatch }, cand_info };
       }
@@ -1434,7 +1434,8 @@ namespace jank::analyze::cpp_util
       if(is_member_call)
       {
         if(cppinterop::is_method(ranked.fn) && !arg_types.empty()
-           && !cppinterop::is_const_method(ranked.fn) && !cppinterop::is_const_type(arg_types[0]))
+           && !cppinterop::is_const_method(ranked.fn)
+           && cppinterop::is_const_type(cppinterop::get_non_reference_type(arg_types[0])))
         {
           return resolve_candidate(
             ranked.fn,

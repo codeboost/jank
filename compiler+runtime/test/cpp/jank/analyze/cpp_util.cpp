@@ -123,5 +123,7 @@ TEST_SUITE("analyze/cpp_util")
     auto const public_signature{ cppinterop::get_function_signature(fns[public_index]) };
     CHECK(candidates[0].signature == private_signature);
     CHECK(candidates[1].signature == public_signature);
+    CHECK(candidates[1].reason
+          == "This member function is non-const, but the invoking object is const.");
   }
 }

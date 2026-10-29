@@ -1,0 +1,14 @@
+(cpp/raw
+"
+struct foo
+{
+  template <typename T>
+  T bar()
+  {
+    return 42;
+  }
+};
+")
+
+(let [f (cpp/foo)]
+  (.bar f))

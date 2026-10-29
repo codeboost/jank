@@ -1,0 +1,22 @@
+─ analyze/invalid-cpp-call ─────────────────────────────────────────────────────
+error: No matching overload of the `bar` function was found for this call.
+
+─────┬──────────────────────────────────────────────────────────────────────────
+     │ input.jank
+─────┼──────────────────────────────────────────────────────────────────────────
+ 16  │ ")
+ 17  │ 
+ 18  │ (let [f (cpp/get_foo)]
+     │ ^ Expanded from this macro.
+ 19  │   (.bar f))
+     │    ^^^^ Found here.
+─────┼──────────────────────────────────────────────────────────────────────────
+  🗎  │ https://book.jank-lang.org/reference/error/analyze/invalid-cpp-call.html
+─────┴──────────────────────────────────────────────────────────────────────────
+
+  Candidates considered (showing 1 of 1):
+
+  ✗ int foo::bar()
+    ╰─ declared at input.jank:4
+    ──────────────────────────────────────────────────────────
+    Not viable: This member function is non-const, but the invoking object is const.
